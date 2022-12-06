@@ -135,10 +135,12 @@ class JTextDetector extends StatelessWidget {
         textWidthBasis: textWidthBasis,
         semanticsLabel: semanticsLabel,
         maxLines: maxLines,
-        toolbarOptions: const ToolbarOptions(
+        selectionControls: MaterialTextSelectionControls(),
+        /*toolbarOptions: const ToolbarOptions(
           selectAll: true,
           copy: true,
         ),
+        */
       );
     } else {
       return Text.rich(

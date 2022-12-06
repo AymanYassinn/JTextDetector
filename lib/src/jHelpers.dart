@@ -1,5 +1,4 @@
 // ignore_for_file: non_constant_identifier_names
-
 part of jtdetector;
 
 /// A [DetectedValue] class which provides a Return Value for [JTextDetector]
@@ -168,8 +167,8 @@ const Map<String, dynamic> STRING_REGEXP_CONST_MAP = {
   HASHTAG_REGEXP_TYPE: HASHTAG_REGEXP,
   USER_TAG_REGEXP_TYPE: USER_TAG_REGEXP,
   USER_ID_TAG_REGEXP_TYPE: USER_TAG_WITH_ID,
-  ARABIC_REGEXP_TYPE: ARABIC_REGEXP,
-  ENGLISH_REGEXP_TYPE: ENGLISH_REGEXP,
+  //ARABIC_REGEXP_TYPE: ARABIC_REGEXP,
+  // ENGLISH_REGEXP_TYPE: ENGLISH_REGEXP,
 };
 
 /// An [Map] Global Var [REGEXP_MAP_VALUES] for [String] Patterns types and [RegExp] constant
@@ -180,6 +179,6 @@ Map<String, RegExp> REGEXP_MAP_VALUES = {
   HASHTAG_REGEXP_TYPE: RegExp(HASHTAG_REGEXP),
   USER_TAG_REGEXP_TYPE: RegExp(USER_TAG_REGEXP),
   USER_ID_TAG_REGEXP_TYPE: RegExp(USER_TAG_WITH_ID),
-  ARABIC_REGEXP_TYPE: RegExp(ARABIC_REGEXP),
-  ENGLISH_REGEXP_TYPE: RegExp(ENGLISH_REGEXP),
+  // ARABIC_REGEXP_TYPE: RegExp(ARABIC_REGEXP),
+  // ENGLISH_REGEXP_TYPE: RegExp(ENGLISH_REGEXP),
 };

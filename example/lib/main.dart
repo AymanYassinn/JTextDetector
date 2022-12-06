@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
 
 const List<String> TEXT_EXAMPLE = [
   "السلام [@عليكم:12345678] #how @حالكم [@friends:1234568] 150",
-  "00. This  a url: https://flutter.dev email address: info@jucodes.com an #hashtag @user tag ",
+  "00. This  a url: https://jucodes.com email address: info@jucodes.com an #hashtag @user tag +967772445395",
   "01. This  a url: https://flutter.dev",
   "02. This email address example@jucodes.com",
   "03. This  #hashtag #هاشتاغ",
@@ -41,7 +41,7 @@ const List<String> TEXT_EXAMPLE = [
   "05. This  phone number +967772445395",
   "06. This text Arabic: وعليكم السلام ورحمة الله Is Nothing وبركاته كيف الحال",
   "08. 772445395",
-  "07. website  https://jucodes.com/en  web: www.jucodes.com,  facebook.com,  link http://jucodes.com/method?id=hello.com, hashtag #trending & mention @dev.user +12345678901",
+  "07. website  https://jucodes.com/en  web: www.jucodes.com,  facebook.com,  link http://jucodes.com/method?id=hello.com, hashtag #trending & userTag @dev.user +12345678901",
 ];
 List<Color> fColors = [
   Colors.brown,
@@ -55,15 +55,14 @@ List<Color> fColors = [
   Colors.pink,
   Colors.cyanAccent,
 ];
-const Map<String, dynamic> STRING_REGEXP_CONST_MA = {
-  //URL_DETECT: URL_REGEXP,
-  //URL_DETECT: \s*(?:\+?(\d{1,3}))?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*([0-9]*)(?: *x(\d+))?\s*,
-  //URL_DETECT: \s*(?:\+?(\d{1,3}))?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{3,4})(?: *x(\d+))?\s*,
-  // PHONE_REGEXP_TYPE: r'''/^(?:(?:\(?(?:00|\+)([1-4]\d\d|[1-9]\d+)\)?)[\-\.\ \\\/]?)?((?:\(?\d{1,}\)?[\-\.\ \\\/]?)+)(?:[\-\.\ \\\/]?(?:#|ext\.?|extension|x)[\-\.\ \\\/]?(\d+))?$/i''',
-  //EMAIL_DETECT: EMAIL_REGEXP,
-  // HASHTAG_DETECT: HASHTAG_REGEXP,
-  //USER_TAG_DETECT: USER_TAG_REGEXP,
-  //USER_ID_TAG_DETECT: USER_TAG_WITH_ID,
+const Map<String, dynamic> STRING_REGEXP_CONST = {
+  URL_REGEXP_TYPE: URL_REGEXP,
+  PHONE_REGEXP_TYPE: PHONE_REGEXP,
+  EMAIL_REGEXP_TYPE: EMAIL_REGEXP,
+  HASHTAG_REGEXP_TYPE: HASHTAG_REGEXP,
+  USER_TAG_REGEXP_TYPE: USER_TAG_REGEXP,
+  USER_ID_TAG_REGEXP_TYPE: USER_TAG_WITH_ID,
+  ARABIC_REGEXP_TYPE: ARABIC_REGEXP,
 };
 
 class JTextDetectorExample extends StatelessWidget {
@@ -85,7 +84,18 @@ class JTextDetectorExample extends StatelessWidget {
                   text: TEXT_EXAMPLE[i],
                   selectable: TEXT_EXAMPLE[i].startsWith("07"),
                   detectorOptions: [
-                    for (var io in STRING_REGEXP_CONST_MAP.entries.toList())
+                    DetectorOptions(
+                        type: "PHONE",
+                        pattern: PHONE_REGEXP,
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontSize: 24,
+                        ),
+                        onTap: (url) {
+                          //launch("tel:" + url);
+                          debugPrint("tel:${url.value}");
+                        }),
+                    for (var io in STRING_REGEXP_CONST.entries.toList())
                       DetectorOptions(
                         pattern: io.value,
                         type: io.key,
