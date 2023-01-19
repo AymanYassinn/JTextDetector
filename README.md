@@ -1,8 +1,9 @@
 # jtdetector
 
-Just Text Detector: Just An Amazing Highly Customizable Text Detector Widget Package That Can Detect Url,HashTag,Email,User Tag & any Other Pattern.
+Just Text Detector: Just An Amazing Highly Customizable Text & Text Field Detector Widgets Package That Can Detect Url,HashTag,Email,User Tag & any Other Pattern.
 
 ## Features
+- Text Field Detector Widget
 - Text Detector Widget
 - Text Detector Method
 - Many RegExp Constants
@@ -15,8 +16,26 @@ To use this package, add `jtdetector` as a dependency in your `pubspec.yaml` fil
 import 'package:jtdetector/jtdetector.dart';
 ```
 ## Simple Usage
-You Can Use The Widget, Constants, Method
+You Can Use The Widgets, Constants, Method
 
+#JTextFieldDetector Widget
+
+```dart
+JTextFieldDetector(
+                controller: controller,
+                keyboardType: TextInputType.multiline,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+                textAlign: TextAlign.center,
+                textDirection: TextDirection.rtl,
+                clipBehavior: Clip.hardEdge,
+                detectorOptions: detectorOptionsList,
+                maxLines: 15,
+              ),
+```
 #JTextDetector Widget
 
 ```dart

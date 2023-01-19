@@ -1,11 +1,11 @@
 name: jtdetector
-description: Just An Amazing Highly Customizable Text Detector Widget Package That Can Detect Url,HashTag,Email,User Tag & any Other Pattern.
-version: 1.1.0
+description: Just An Amazing Highly Customizable Text & Text Field Detector Widgets Package That Can Detect Url,HashTag,Email,User Tag & any Other Pattern.
+version: 1.1.1
 homepage: https://github.com/AymanYassinn/
 repository: https://github.com/AymanYassinn/JTextDetector
 
 environment:
-  sdk: '>=2.18.5 <3.0.0'
+  sdk: '>=2.18.6 <3.0.0'
   flutter: ">=1.17.0"
 
 dependencies:
