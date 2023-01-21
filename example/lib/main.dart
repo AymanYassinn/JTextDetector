@@ -168,6 +168,7 @@ class JTextDetectorExample extends StatefulWidget {
 
 class _JTextDetectorExampleState extends State<JTextDetectorExample> {
   TextEditingController controller = TextEditingController(text: '');
+  FocusNode focusNode = FocusNode();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -187,8 +188,8 @@ class _JTextDetectorExampleState extends State<JTextDetectorExample> {
                   fontWeight: FontWeight.bold,
                   color: Colors.black,
                 ),
-                textAlign: TextAlign.center,
                 textDirection: TextDirection.rtl,
+                textAlign: TextAlign.right,
                 clipBehavior: Clip.hardEdge,
                 detectorOptions: detectorOptionsList,
                 maxLines: 15,

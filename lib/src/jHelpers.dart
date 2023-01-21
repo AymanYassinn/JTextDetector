@@ -47,6 +47,10 @@ class DetectorOptions {
   /// the [Widget] to be displayed inside a [WidgetSpan]
   Widget Function(DetectedValue dv)? valueWidget;
 
+  /// [spanWidget] A callback function that takes one parameter of Type [DetectedValue]
+  /// and display [TextSpan]
+  TextSpan Function(DetectedValue dv)? spanWidget;
+
   ///[RegExp] getter [pat]
   RegExp get pat => RegExp(pattern);
 
@@ -58,6 +62,7 @@ class DetectorOptions {
     this.onTap,
     this.parsingValue,
     this.valueWidget,
+    this.spanWidget,
   });
 }
 

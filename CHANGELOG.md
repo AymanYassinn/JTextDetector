@@ -1,3 +1,5 @@
+## 1.1.2
+* Adding `spanWidget` To DetectorOptions Class 
 ## 1.1.1
 * Text Field Detector Widget
 * Add Text Field Detector Example

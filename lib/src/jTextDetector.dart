@@ -240,6 +240,8 @@ TextSpan _jSpansWidget({
             recognizer: TapGestureRecognizer()
               ..onTap = () => fOnTap(fDetectedValue),
           ));
+        } else if (fDetector.spanWidget != null) {
+          spanList.add(fDetector.spanWidget!(fDetectedValue));
         } else {
           spanList.add(TextSpan(
             text: matchedText,
