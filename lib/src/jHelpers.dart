@@ -1,12 +1,199 @@
-// ignore_for_file: non_constant_identifier_names
-part of jtdetector;
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 
-/// A [DetectedValue] class which provides a Return Value for [JTextDetector]
+/// A [JTDetector] class which provides a SpanWidgets Value
+class JTDetector {
+  ///[List] of [DetectorOptions] - [_fDetections]
+  final List<DetectorOptions> _fDetections;
 
+  ///[TextStyle] of [_style]
+  final TextStyle? _style;
+
+  ///[String] of [_fText]
+  final String _fText;
+
+  ///[bool] of [_valid]
+  final bool _valid;
+
+  ///[Function] of [DetectedValue] - [_onTap]
+  Function(DetectedValue)? _onTap;
+
+  ///constructor for [JTDetector]
+  JTDetector(
+      [this._fDetections = const [],
+      this._fText = '',
+      this._style,
+      this._onTap,
+      this._valid = true]);
+
+  ///[TextSpan] Getter - [spans]
+  TextSpan get spans => _jSpansWidget();
+
+  ///[RegExp] Getter - [regExp]
+  RegExp get regExp => _fRegex();
+  TextSpan _jSpansWidget() {
+    final regExp = _fRegex();
+    if (_fText.isEmpty || _fDetections.isEmpty || !regExp.hasMatch(_fText)) {
+      return TextSpan(text: _fText, style: _style);
+    }
+    final textList = _fText.split(regExp);
+    final detectedList = regExp.allMatches(_fText).toList();
+
+    final span = textList.map((e) {
+      return TextSpan(
+        children: [
+          TextSpan(text: e, style: _style),
+          if (_valid) _spansList(detectedList),
+          if (!_valid) _spansList2(detectedList),
+        ],
+      );
+    }).toList();
+    return TextSpan(children: span);
+  }
+
+  InlineSpan _spansList(List<RegExpMatch> detectedList) {
+    InlineSpan fWidget = TextSpan();
+    if (detectedList.isNotEmpty) {
+      final match = detectedList.removeAt(0);
+      String matchedText = match.input.substring(match.start, match.end);
+      String fType = "";
+      RegExp fRegExp = RegExp(r'''a^''');
+      TextStyle? fStyle = _style;
+      Function(DetectedValue) fOnTap = _onTap ?? (DetectedValue b) {};
+      DetectorOptions? fDetector;
+      for (var i in _fDetections) {
+        if (i.pat.hasMatch(matchedText)) {
+          fDetector = i;
+          fType = i.type;
+          fRegExp = i.pat;
+          fStyle = i.style;
+          if (i.onTap != null) {
+            fOnTap = i.onTap!;
+          }
+        }
+      }
+      final fDetectedValue = DetectedValue(fRegExp, matchedText, fType);
+
+      if (fDetector != null) {
+        if (fDetector.valueWidget != null) {
+          fWidget = WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: GestureDetector(
+              onTap: () => fOnTap(fDetectedValue),
+              child: fDetector.valueWidget!(fDetectedValue),
+            ),
+          );
+        } else if (fDetector.parsingValue != null) {
+          var result = fDetector.parsingValue!(fDetectedValue);
+          fWidget = TextSpan(
+            text: result.value,
+            style: fStyle,
+            recognizer: TapGestureRecognizer()
+              ..onTap = () => fOnTap(fDetectedValue),
+          );
+        } else if (fDetector.spanWidget != null) {
+          fWidget = fDetector.spanWidget!(fDetectedValue);
+        } else {
+          fWidget = TextSpan(
+            text: matchedText,
+            style: fStyle,
+            recognizer: TapGestureRecognizer()
+              ..onTap = () => fOnTap(fDetectedValue),
+          );
+        }
+      } else {
+        fWidget = TextSpan(
+          text: matchedText,
+          style: fStyle,
+          recognizer: TapGestureRecognizer()
+            ..onTap = () => fOnTap(fDetectedValue),
+        );
+      }
+    }
+    return fWidget;
+  }
+
+  InlineSpan _spansList2(List<RegExpMatch> detectedList) {
+    InlineSpan fWidget = TextSpan();
+    if (detectedList.isNotEmpty) {
+      final match = detectedList.removeAt(0);
+      String matchedText = match.input.substring(match.start, match.end);
+      String fType = "";
+      RegExp fRegExp = RegExp(r'''a^''');
+      TextStyle? fStyle = _style;
+      Function(DetectedValue) fOnTap = _onTap ?? (DetectedValue b) {};
+      DetectorOptions? fDetector;
+      for (var i in _fDetections) {
+        if (i.pat.hasMatch(matchedText)) {
+          fDetector = i;
+          fType = i.type;
+          fRegExp = i.pat;
+          fStyle = i.style;
+          if (i.onTap != null) {
+            fOnTap = i.onTap!;
+          }
+        }
+      }
+      final fDetectedValue = DetectedValue(fRegExp, matchedText, fType);
+      if (fDetector != null) {
+        if (fDetector.valueWidget != null) {
+          fWidget = WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: GestureDetector(
+              onTap: () => fOnTap(fDetectedValue),
+              child: fDetector.valueWidget!(fDetectedValue),
+            ),
+          );
+        } else if (fDetector.parsingValue != null) {
+          var result = fDetector.parsingValue!(fDetectedValue);
+          fWidget = TextSpan(
+            text: result.value,
+            style: fStyle,
+          );
+        } else if (fDetector.spanWidget != null) {
+          fWidget = fDetector.spanWidget!(fDetectedValue);
+        } else {
+          fWidget = TextSpan(
+            text: matchedText,
+            style: fStyle,
+          );
+        }
+      } else {
+        fWidget = TextSpan(
+          text: matchedText,
+          style: fStyle,
+        );
+      }
+    }
+    return fWidget;
+  }
+
+  RegExp _fRegex() {
+    if (_fDetections.isEmpty) {
+      return RegExp(r'''a^''');
+    } else if (_fDetections.length == 1) {
+      return _fDetections.first.pat;
+    } else {
+      final len = _fDetections.length;
+      final buffer = StringBuffer();
+      for (var i = 0; i < len; i++) {
+        final type = _fDetections[i];
+        final isLast = i == len - 1;
+        isLast
+            ? buffer.write("(${type.pattern})")
+            : buffer.write("(${type.pattern})|");
+      }
+      return RegExp(buffer.toString());
+    }
+  }
+}
+
+/// A [DetectedValue] class which provides a Return Value for [JTextDetector] and [JTextFieldDetector]
 class DetectedValue {
   String _value = "";
   String _detectType = "";
   RegExp _regExp = RegExp(r'''a^''');
+  DetectedValue(this._regExp, [this._value = '', this._detectType = ""]);
 
   ///[String] getter [value]
   String get value => _value;
@@ -16,13 +203,6 @@ class DetectedValue {
 
   ///[RegExp] getter [regExp]
   RegExp get regExp => _regExp;
-
-  /// Creates a [DetectedValue] object from [DetectedValue.init(te, deType, reg)]
-  DetectedValue.init(String te, String deType, RegExp reg) {
-    _value = te;
-    _detectType = deType;
-    _regExp = reg;
-  }
 }
 
 /// A [DetectorOptions] class which provides a structure for [JTextDetector] to handle
@@ -95,45 +275,25 @@ const String ARABIC_REGEXP = r'''[\u0600-\u06FF]+''';
 /// An constant [String] for [ENGLISH_REGEXP] Pattern
 const String ENGLISH_REGEXP = r'''[a-zA-Z]+''';
 
-///  [detectFromText] method that take [String] parameter text and [Map] of [String] as types and [RegExp] as Patterns,
+///  [detectFromText] method that take [String] parameter text and [List] of [DetectorOptions] as fList,
 ///  And has [List] of [DetectedValue] model as Return type
-List<DetectedValue> detectFromText(String text, Map<String, RegExp> reg) {
+List<DetectedValue> detectFromText(String text, List<DetectorOptions> fList) {
   List<DetectedValue> list = [];
-  RegExp? regExp;
-  if (reg.isNotEmpty && text.isNotEmpty) {
-    if (reg.entries.length > 1) {
-      final len = reg.entries.length;
-      final buffer = StringBuffer();
-      //  for(var io in reg.entries)
-      for (var i = 0; i < len; i++) {
-        final type = reg.entries.toList()[i];
-        final isLast = i == len - 1;
-        isLast
-            ? buffer.write("(${type.value.pattern})")
-            : buffer.write("(${type.value.pattern})|");
-      }
-      if (buffer.isNotEmpty) {
-        regExp = RegExp(buffer.toString());
-      }
-    } else {
-      regExp = reg.values.first;
-    }
-    if (regExp != null) {
-      if (regExp.hasMatch(text)) {
-        final allText = text.split(regExp);
-        final detectedList = regExp.allMatches(text).toList();
-        // ignore: avoid_function_literals_in_foreach_calls
-        allText.forEach((element) {
-          if (detectedList.isNotEmpty) {
-            final match = detectedList.removeAt(0);
-            String matchedText = match.input.substring(match.start, match.end);
-            for (var i in reg.entries.toList()) {
-              if (i.value.hasMatch(matchedText)) {
-                list.add(DetectedValue.init(matchedText, i.key, i.value));
-              }
+  if (text.isNotEmpty && fList.isNotEmpty) {
+    final detector = JTDetector(fList, text);
+    if (detector.regExp.hasMatch(text)) {
+      final allText = text.split(detector.regExp);
+      final detectedList = detector.regExp.allMatches(text).toList();
+      for (int io = 0; io < allText.length; io++) {
+        if (detectedList.isNotEmpty) {
+          final match = detectedList.removeAt(0);
+          String matchedText = match.input.substring(match.start, match.end);
+          for (var i in fList) {
+            if (i.pat.hasMatch(matchedText)) {
+              list.add(DetectedValue(i.pat, matchedText, i.type));
             }
           }
-        });
+        }
       }
     }
   }
@@ -164,26 +324,30 @@ const ARABIC_REGEXP_TYPE = "ARABIC";
 /// An [String] constant for [ENGLISH_REGEXP_TYPE]
 const ENGLISH_REGEXP_TYPE = "ENGLISH";
 
-/// An [Map] constant [STRING_REGEXP_CONST_MAP] for [String] Patterns and [String] types
-const Map<String, dynamic> STRING_REGEXP_CONST_MAP = {
-  URL_REGEXP_TYPE: URL_REGEXP,
-  PHONE_REGEXP_TYPE: PHONE_REGEXP,
-  EMAIL_REGEXP_TYPE: EMAIL_REGEXP,
-  HASHTAG_REGEXP_TYPE: HASHTAG_REGEXP,
-  USER_TAG_REGEXP_TYPE: USER_TAG_REGEXP,
-  USER_ID_TAG_REGEXP_TYPE: USER_TAG_WITH_ID,
-  //ARABIC_REGEXP_TYPE: ARABIC_REGEXP,
-  // ENGLISH_REGEXP_TYPE: ENGLISH_REGEXP,
-};
-
-/// An [Map] Global Var [REGEXP_MAP_VALUES] for [String] Patterns types and [RegExp] constant
-Map<String, RegExp> REGEXP_MAP_VALUES = {
-  URL_REGEXP_TYPE: RegExp(URL_REGEXP),
-  PHONE_REGEXP_TYPE: RegExp(PHONE_REGEXP),
-  EMAIL_REGEXP_TYPE: RegExp(EMAIL_REGEXP),
-  HASHTAG_REGEXP_TYPE: RegExp(HASHTAG_REGEXP),
-  USER_TAG_REGEXP_TYPE: RegExp(USER_TAG_REGEXP),
-  USER_ID_TAG_REGEXP_TYPE: RegExp(USER_TAG_WITH_ID),
-  // ARABIC_REGEXP_TYPE: RegExp(ARABIC_REGEXP),
-  // ENGLISH_REGEXP_TYPE: RegExp(ENGLISH_REGEXP),
-};
+/// An [List] Global Var [defaultDetectorOptionsList] for [DetectorOptions]
+List<DetectorOptions> defaultDetectorOptionsList = [
+  DetectorOptions(
+    type: URL_REGEXP_TYPE,
+    pattern: URL_REGEXP,
+  ),
+  DetectorOptions(
+    type: PHONE_REGEXP_TYPE,
+    pattern: PHONE_REGEXP,
+  ),
+  DetectorOptions(
+    type: EMAIL_REGEXP_TYPE,
+    pattern: EMAIL_REGEXP,
+  ),
+  DetectorOptions(
+    type: HASHTAG_REGEXP_TYPE,
+    pattern: HASHTAG_REGEXP,
+  ),
+  DetectorOptions(
+    type: USER_TAG_REGEXP_TYPE,
+    pattern: USER_TAG_REGEXP,
+  ),
+  DetectorOptions(
+    type: USER_ID_TAG_REGEXP_TYPE,
+    pattern: USER_TAG_WITH_ID,
+  ),
+];

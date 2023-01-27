@@ -28,8 +28,7 @@ JTextFieldDetector(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.black,
-                ),
-                textAlign: TextAlign.center,
+                ),isTapValid: false,
                 textDirection: TextDirection.rtl,
                 clipBehavior: Clip.hardEdge,
                 detectorOptions: detectorOptionsList,
@@ -79,15 +78,33 @@ JTextFieldDetector(
 #Method
 
 ```dart
-Map<String, RegExp> REGEXP_MAP_VALUES = {
-  URL_REGEXP_TYPE: RegExp(URL_REGEXP),
-  PHONE_REGEXP_TYPE: RegExp(PHONE_REGEXP),
-  EMAIL_REGEXP_TYPE: RegExp(EMAIL_REGEXP),
-  HASHTAG_REGEXP_TYPE: RegExp(HASHTAG_REGEXP),
-  USER_TAG_REGEXP_TYPE: RegExp(USER_TAG_REGEXP),
-  USER_ID_TAG_REGEXP_TYPE: RegExp(USER_TAG_WITH_ID),
-};
-List<DetectedValue> value = detectFromText("website  https://jucodes.com/en  web: www.jucodes.com,  facebook.com,  link http://jucodes.com/method?id=hello.com, hashtag #trending & mention @dev.user +12345678901", REGEXP_MAP_VALUES);
+List<DetectorOptions> defaultDetectorOptionsList = [
+  DetectorOptions(
+    type: URL_REGEXP_TYPE,
+    pattern: URL_REGEXP,
+  ),
+  DetectorOptions(
+    type: PHONE_REGEXP_TYPE,
+    pattern: PHONE_REGEXP,
+  ),
+  DetectorOptions(
+    type: EMAIL_REGEXP_TYPE,
+    pattern: EMAIL_REGEXP,
+  ),
+  DetectorOptions(
+    type: HASHTAG_REGEXP_TYPE,
+    pattern: HASHTAG_REGEXP,
+  ),
+  DetectorOptions(
+    type: USER_TAG_REGEXP_TYPE,
+    pattern: USER_TAG_REGEXP,
+  ),
+  DetectorOptions(
+    type: USER_ID_TAG_REGEXP_TYPE,
+    pattern: USER_TAG_WITH_ID,
+  ),
+];
+List<DetectedValue> value = detectFromText("website  https://jucodes.com/en  web: www.jucodes.com,  facebook.com,  link http://jucodes.com/method?id=hello.com, hashtag #trending & mention @dev.user +12345678901", defaultDetectorOptionsList);
 
 ```
 

@@ -1,4 +1,11 @@
-part of jtdetector;
+import 'dart:ui' as ui show BoxHeightStyle, BoxWidthStyle;
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/material.dart';
+import 'package:jtdetector/src/jHelpers.dart';
 
 class _TextFieldSelectionGestureDetectorBuilder
     extends TextSelectionGestureDetectorBuilder {
@@ -241,6 +248,8 @@ class JTextFieldDetector extends StatefulWidget {
   ///    characters" and how it may differ from the intuitive meaning.
   const JTextFieldDetector({
     super.key,
+    this.isTapValid = false,
+    this.onDetectedTap,
     this.controller,
     this.focusNode,
     this.decoration = const InputDecoration(),
@@ -474,6 +483,10 @@ class JTextFieldDetector extends StatefulWidget {
 
   /// {@macro flutter.widgets.editableText.readOnly}
   final bool readOnly;
+
+  /// {@macro flutter.widgets.editableText.readOnly}
+  final bool isTapValid;
+  final Function(DetectedValue)? onDetectedTap;
 
   /// Configuration of toolbar options.
   ///
@@ -829,7 +842,7 @@ class JTextFieldDetector extends StatefulWidget {
 
 class _JTextFieldDetectorState extends State<JTextFieldDetector>
     with RestorationMixin
-    implements TextSelectionGestureDetectorBuilderDelegate, AutofillClient {
+    implements TextSelectionGestureDetectorBuilderDelegate {
   RestorableTextEditingController? _controller;
   TextEditingController get _effectiveController =>
       widget.controller ?? _controller!.value;
@@ -1130,32 +1143,6 @@ class _JTextFieldDetectorState extends State<JTextFieldDetector>
     }
   }
 
-  // AutofillClient implementation start.
-  @override
-  String get autofillId => _editableText!.autofillId;
-
-  @override
-  void autofill(TextEditingValue newEditingValue) =>
-      _editableText!.autofill(newEditingValue);
-
-  @override
-  TextInputConfiguration get textInputConfiguration {
-    final List<String>? autofillHints =
-        widget.autofillHints?.toList(growable: false);
-    final AutofillConfiguration autofillConfiguration = autofillHints != null
-        ? AutofillConfiguration(
-            uniqueIdentifier: autofillId,
-            autofillHints: autofillHints,
-            currentEditingValue: _effectiveController.value,
-            hintText: (widget.decoration ?? const InputDecoration()).hintText,
-          )
-        : AutofillConfiguration.disabled;
-
-    return _editableText!.textInputConfiguration
-        .copyWith(autofillConfiguration: autofillConfiguration);
-  }
-  // AutofillClient implementation end.
-
   @override
   Widget build(BuildContext context) {
     assert(debugCheckHasMaterial(context));
@@ -1285,7 +1272,7 @@ class _JTextFieldDetectorState extends State<JTextFieldDetector>
     Widget child = RepaintBoundary(
       child: UnmanagedRestorationScope(
         bucket: bucket,
-        child: _JTextEditable(
+        child: JTextEditable(
           key: editableTextKey,
           autofillHints: widget.autofillHints,
           readOnly: widget.readOnly || !_isEnabled,
@@ -1294,6 +1281,8 @@ class _JTextFieldDetectorState extends State<JTextFieldDetector>
           showSelectionHandles: _showSelectionHandles,
           controller: controller,
           focusNode: focusNode,
+          fTap: widget.onDetectedTap,
+          fValid: widget.isTapValid,
           keyboardType: widget.keyboardType,
           textInputAction: widget.textInputAction,
           textCapitalization: widget.textCapitalization,
@@ -1341,12 +1330,8 @@ class _JTextFieldDetectorState extends State<JTextFieldDetector>
           dragStartBehavior: widget.dragStartBehavior,
           scrollController: widget.scrollController,
           scrollPhysics: widget.scrollPhysics,
-          autofillClient: this,
           autocorrectionTextRectColor: autocorrectionTextRectColor,
-          clipBehavior: widget.clipBehavior,
           restorationId: 'editable',
-          scribbleEnabled: widget.scribbleEnabled,
-          enableIMEPersonalizedLearning: widget.enableIMEPersonalizedLearning,
         ),
       ),
     );
@@ -1429,16 +1414,19 @@ class _JTextFieldDetectorState extends State<JTextFieldDetector>
   }
 }
 
-class _JTextEditable extends EditableText {
+class JTextEditable extends EditableText {
   final List<DetectorOptions> detectorOptions;
-
-  _JTextEditable({
+  final Function(DetectedValue)? fTap;
+  final bool fValid;
+  JTextEditable({
     required super.controller,
     required super.focusNode,
     required super.style,
     required super.cursorColor,
     required super.backgroundCursorColor,
     this.detectorOptions = const [],
+    this.fTap,
+    this.fValid = false,
     super.key,
     super.readOnly,
     super.obscuringCharacter,
@@ -1499,118 +1487,20 @@ class _JTextEditable extends EditableText {
 
 class JTextEditeState extends EditableTextState {
   @override
-  _JTextEditable get widget => super.widget as _JTextEditable;
+  JTextEditable get widget => super.widget as JTextEditable;
 
   @override
   TextSpan buildTextSpan() {
-    final detections = widget.detectorOptions;
-
-    if (detections.isEmpty || widget.controller.text.isEmpty) {
+    if (widget.detectorOptions.isEmpty || textEditingValue.text.isEmpty) {
       return widget.controller.buildTextSpan(
         context: context,
         style: widget.style,
         withComposing: !widget.readOnly,
       );
     } else {
-      return _jSpansWidget(
-          fText: widget.controller.text,
-          fModel: widget.detectorOptions,
-          style: widget.style);
+      return JTDetector(widget.detectorOptions, textEditingValue.text,
+              widget.style, widget.fTap, widget.fValid)
+          .spans;
     }
-  }
-
-  RegExp _fRegex(List<DetectorOptions> detectorOptions) {
-    if (detectorOptions.isEmpty) {
-      return RegExp(r'''a^''');
-    } else if (detectorOptions.length == 1) {
-      return detectorOptions.first.pat;
-    } else {
-      final len = detectorOptions.length;
-      final buffer = StringBuffer();
-      for (var i = 0; i < len; i++) {
-        final type = detectorOptions[i];
-        final isLast = i == len - 1;
-        isLast
-            ? buffer.write("(${type.pattern})")
-            : buffer.write("(${type.pattern})|");
-      }
-      return RegExp(buffer.toString());
-    }
-  }
-
-  TextSpan _jSpansWidget({
-    String fText = "",
-    List<DetectorOptions> fModel = const [],
-    Function(DetectedValue)? onTap,
-    TextStyle? style,
-  }) {
-    final regExp = _fRegex(fModel);
-    if (fText.isEmpty || fModel.isEmpty || !regExp.hasMatch(fText)) {
-      return TextSpan(text: fText, style: style);
-    }
-    final textList = fText.split(regExp);
-    final List<InlineSpan> spanList = [];
-    final detectedList = regExp.allMatches(fText).toList();
-    for (final textItem in textList) {
-      spanList.add(TextSpan(text: textItem, style: style));
-      if (detectedList.isNotEmpty) {
-        final match = detectedList.removeAt(0);
-        String matchedText = match.input.substring(match.start, match.end);
-        String fType = "";
-        RegExp fRegExp = RegExp(r'''a^''');
-        TextStyle? fStyle = style;
-        Function(DetectedValue) fOnTap = onTap ?? (DetectedValue b) {};
-
-        DetectorOptions? fDetector;
-        for (var i in fModel) {
-          if (i.pat.hasMatch(matchedText)) {
-            fDetector = i;
-            fType = i.type;
-            fRegExp = i.pat;
-            fStyle = i.style;
-            if (i.onTap != null) {
-              fOnTap = i.onTap!;
-            }
-          }
-        }
-        final fDetectedValue = DetectedValue.init(matchedText, fType, fRegExp);
-        if (fDetector != null) {
-          if (fDetector.valueWidget != null) {
-            spanList.add(WidgetSpan(
-              alignment: PlaceholderAlignment.middle,
-              child: GestureDetector(
-                onTap: () => fOnTap(fDetectedValue),
-                child: fDetector.valueWidget!(fDetectedValue),
-              ),
-            ));
-          } else if (fDetector.parsingValue != null) {
-            var result = fDetector.parsingValue!(fDetectedValue);
-            spanList.add(TextSpan(
-              text: result.value,
-              style: fStyle,
-              recognizer: TapGestureRecognizer()
-                ..onTap = () => fOnTap(fDetectedValue),
-            ));
-          } else if (fDetector.spanWidget != null) {
-            spanList.add(fDetector.spanWidget!(fDetectedValue));
-          } else {
-            spanList.add(TextSpan(
-              text: matchedText,
-              style: fStyle,
-              recognizer: TapGestureRecognizer()
-                ..onTap = () => fOnTap(fDetectedValue),
-            ));
-          }
-        } else {
-          spanList.add(TextSpan(
-            text: matchedText,
-            style: fStyle,
-            recognizer: TapGestureRecognizer()
-              ..onTap = () => fOnTap(fDetectedValue),
-          ));
-        }
-      }
-    }
-    return TextSpan(children: spanList);
   }
 }

@@ -1,3 +1,8 @@
+## 1.2.2
+* Adding `JTDetector` class to handle spans
+* Adding `defaultDetectorOptionsList`
+* Removing old constants maps
+* Fixing `JTextFieldDetector`
 ## 1.1.2
 * Adding `spanWidget` To DetectorOptions Class 
 ## 1.1.1

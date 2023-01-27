@@ -141,7 +141,7 @@ List<DetectorOptions> detectorOptionsList = [
       DetectedValue val = value;
       if (match != null) {
         var ma = match[0].toString();
-        val = DetectedValue.init(ma, "NoD", customRegExp);
+        val = DetectedValue(customRegExp, ma, "NoD");
       }
       debugPrint("${value.detectType}:${value.value}:${value.regExp.pattern}");
       debugPrint("${val.detectType}:${val.value}:${val.regExp.pattern}");
@@ -168,12 +168,12 @@ class JTextDetectorExample extends StatefulWidget {
 
 class _JTextDetectorExampleState extends State<JTextDetectorExample> {
   TextEditingController controller = TextEditingController(text: '');
-  FocusNode focusNode = FocusNode();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Example Text Detector"),
+        title: const Text("JustTextDetectorWidget"),
       ),
       body: Column(
         children: [
@@ -192,77 +192,23 @@ class _JTextDetectorExampleState extends State<JTextDetectorExample> {
                 textAlign: TextAlign.right,
                 clipBehavior: Clip.hardEdge,
                 detectorOptions: detectorOptionsList,
+                isTapValid: false,
                 maxLines: 15,
               ),
               for (int i = 0; i < TEXT_EXAMPLE.length; i++)
                 JTextDetector(
                   text: TEXT_EXAMPLE[i],
                   selectable: TEXT_EXAMPLE[i].startsWith("07"),
-                  detectorOptions: [
-                    DetectorOptions(
-                        type: "PHONE",
-                        pattern: PHONE_REGEXP,
-                        style: const TextStyle(
-                          color: Colors.red,
-                          fontSize: 24,
-                        ),
-                        onTap: (url) {
-                          //launch("tel:" + url);
-                          debugPrint("tel:${url.value}");
-                        }),
-                    for (var io in STRING_REGEXP_CONST.entries.toList())
-                      DetectorOptions(
-                        pattern: io.value,
-                        type: io.key,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: fColors[i],
-                        ),
-                        onTap: (value) {
-                          debugPrint(
-                              "${value.detectType}:${value.value}:${value.regExp.pattern}");
-                        },
-                        parsingValue: TEXT_EXAMPLE[i].contains("150")
-                            ? (value) {
-                                RegExp customRegExp =
-                                    RegExp(r'''[a-zA-Z\u0600-\u06FF]+''');
-                                Match? match =
-                                    customRegExp.firstMatch(value.value);
-                                DetectedValue val = value;
-                                if (match != null) {
-                                  var ma = match[0].toString();
-                                  val = DetectedValue.init(
-                                      ma, "NoD", customRegExp);
-                                }
-                                debugPrint(
-                                    "${value.detectType}:${value.value}:${value.regExp.pattern}");
-                                debugPrint(
-                                    "${val.detectType}:${val.value}:${val.regExp.pattern}");
-                                return val;
-                              }
-                            : null,
-                        valueWidget: TEXT_EXAMPLE[i].startsWith("06")
-                            ? (value) {
-                                return Container(
-                                  color: Colors.blue,
-                                  child: Text(
-                                    value.value,
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                );
-                              }
-                            : null,
-                      ),
-                  ],
+                  detectorOptions: detectorOptionsList,
                 ),
             ],
           )),
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: '1',
         onPressed: () {
-          final value = detectFromText(TEXT_STRING, REGEXP_MAP_VALUES);
+          final value = detectFromText(TEXT_STRING, defaultDetectorOptionsList);
           for (var i in value) {
             debugPrint("${i.detectType}:${i.value}:${i.regExp.pattern}");
           }

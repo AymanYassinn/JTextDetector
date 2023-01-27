@@ -1,4 +1,6 @@
-part of jtdetector;
+import 'package:flutter/rendering.dart';
+import 'package:flutter/material.dart';
+import 'package:jtdetector/src/jHelpers.dart';
 
 class JTextDetector extends StatelessWidget {
   const JTextDetector(
@@ -18,7 +20,8 @@ class JTextDetector extends StatelessWidget {
       this.semanticsLabel,
       this.textWidthBasis,
       this.onTap,
-      this.selectable = false})
+      this.selectable = false,
+      this.isTapValid = true})
       : super(key: key);
 
   /// [text] to be Detect
@@ -56,6 +59,7 @@ class JTextDetector extends StatelessWidget {
   ///
   /// Defaults to the ambient [Directionality], if any.
   final TextDirection? textDirection;
+  final bool isTapValid;
 
   /// Used to select a font when the same Unicode character can
   /// be rendered differently, depending on the locale.
@@ -119,13 +123,11 @@ class JTextDetector extends StatelessWidget {
   final bool selectable;
   @override
   Widget build(BuildContext context) {
+    final detector = JTDetector(
+        detectorOptions, text, defaultDetectStyle, onTap, isTapValid);
     if (selectable) {
       return SelectableText.rich(
-        _jSpansWidget(
-            style: defaultDetectStyle,
-            onTap: onTap,
-            fModel: detectorOptions,
-            fText: text),
+        detector.spans,
         key: key,
         style: textStyle,
         strutStyle: strutStyle,
@@ -136,19 +138,10 @@ class JTextDetector extends StatelessWidget {
         semanticsLabel: semanticsLabel,
         maxLines: maxLines,
         selectionControls: MaterialTextSelectionControls(),
-        /*toolbarOptions: const ToolbarOptions(
-          selectAll: true,
-          copy: true,
-        ),
-        */
       );
     } else {
       return Text.rich(
-        _jSpansWidget(
-            style: defaultDetectStyle,
-            onTap: onTap,
-            fModel: detectorOptions,
-            fText: text),
+        detector.spans,
         key: key,
         style: textStyle,
         strutStyle: strutStyle,
@@ -164,101 +157,4 @@ class JTextDetector extends StatelessWidget {
       );
     }
   }
-}
-
-RegExp _fRegex(List<DetectorOptions> detectorOptions) {
-  if (detectorOptions.isEmpty) {
-    return RegExp(r'''a^''');
-  } else if (detectorOptions.length == 1) {
-    return detectorOptions.first.pat;
-  } else {
-    final len = detectorOptions.length;
-    final buffer = StringBuffer();
-    for (var i = 0; i < len; i++) {
-      final type = detectorOptions[i];
-      final isLast = i == len - 1;
-      isLast
-          ? buffer.write("(${type.pattern})")
-          : buffer.write("(${type.pattern})|");
-    }
-    return RegExp(buffer.toString());
-  }
-}
-
-TextSpan _jSpansWidget({
-  String fText = "",
-  List<DetectorOptions> fModel = const [],
-  Function(DetectedValue)? onTap,
-  TextStyle? style,
-}) {
-  final regExp = _fRegex(fModel);
-  if (fText.isEmpty || fModel.isEmpty || !regExp.hasMatch(fText)) {
-    return TextSpan(text: fText);
-  }
-  final textList = fText.split(regExp);
-  final List<InlineSpan> spanList = [];
-  final detectedList = regExp.allMatches(fText).toList();
-  for (final textItem in textList) {
-    spanList.add(TextSpan(
-      text: textItem,
-    ));
-    if (detectedList.isNotEmpty) {
-      final match = detectedList.removeAt(0);
-      String matchedText = match.input.substring(match.start, match.end);
-      String fType = "";
-      RegExp fRegExp = RegExp(r'''a^''');
-      TextStyle? fStyle = style;
-      Function(DetectedValue) fOnTap = onTap ?? (DetectedValue b) {};
-
-      DetectorOptions? fDetector;
-      for (var i in fModel) {
-        if (i.pat.hasMatch(matchedText)) {
-          fDetector = i;
-          fType = i.type;
-          fRegExp = i.pat;
-          fStyle = i.style;
-          if (i.onTap != null) {
-            fOnTap = i.onTap!;
-          }
-        }
-      }
-      final fDetectedValue = DetectedValue.init(matchedText, fType, fRegExp);
-      if (fDetector != null) {
-        if (fDetector.valueWidget != null) {
-          spanList.add(WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: GestureDetector(
-              onTap: () => fOnTap(fDetectedValue),
-              child: fDetector.valueWidget!(fDetectedValue),
-            ),
-          ));
-        } else if (fDetector.parsingValue != null) {
-          var result = fDetector.parsingValue!(fDetectedValue);
-          spanList.add(TextSpan(
-            text: result.value,
-            style: fStyle,
-            recognizer: TapGestureRecognizer()
-              ..onTap = () => fOnTap(fDetectedValue),
-          ));
-        } else if (fDetector.spanWidget != null) {
-          spanList.add(fDetector.spanWidget!(fDetectedValue));
-        } else {
-          spanList.add(TextSpan(
-            text: matchedText,
-            style: fStyle,
-            recognizer: TapGestureRecognizer()
-              ..onTap = () => fOnTap(fDetectedValue),
-          ));
-        }
-      } else {
-        spanList.add(TextSpan(
-          text: matchedText,
-          style: fStyle,
-          recognizer: TapGestureRecognizer()
-            ..onTap = () => fOnTap(fDetectedValue),
-        ));
-      }
-    }
-  }
-  return TextSpan(children: spanList);
 }
