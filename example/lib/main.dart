@@ -159,30 +159,30 @@ class _JTextDetectorExampleState extends State<JTextDetectorExample> {
         children: [
           Expanded(
               child: ListView(
-                children: [
-                  JTextFieldDetector(
-                    controller: controller,
-                    keyboardType: TextInputType.multiline,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                    textDirection: TextDirection.rtl,
-                    textAlign: TextAlign.right,
-                    clipBehavior: Clip.hardEdge,
-                    detectorOptions: detectorOptionsList,
-                    isTapValid: false,
-                    maxLines: 15,
-                  ),
-                  for (int i = 0; i < TEXT_EXAMPLE.length; i++)
-                    JTextDetector(
-                      text: TEXT_EXAMPLE[i],
-                      selectable: TEXT_EXAMPLE[i].startsWith("07"),
-                      detectorOptions: detectorOptionsList,
-                    ),
-                ],
-              )),
+            children: [
+              JTextFieldDetector(
+                controller: controller,
+                keyboardType: TextInputType.multiline,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+                textDirection: TextDirection.rtl,
+                textAlign: TextAlign.right,
+                clipBehavior: Clip.hardEdge,
+                detectorOptions: detectorOptionsList,
+                isTapValid: false,
+                maxLines: 15,
+              ),
+              for (int i = 0; i < TEXT_EXAMPLE.length; i++)
+                JTextDetector(
+                  text: TEXT_EXAMPLE[i],
+                  selectable: TEXT_EXAMPLE[i].startsWith("07"),
+                  detectorOptions: detectorOptionsList,
+                ),
+            ],
+          )),
         ],
       ),
       floatingActionButton: FloatingActionButton(

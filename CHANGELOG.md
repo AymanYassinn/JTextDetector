@@ -1,3 +1,5 @@
+## 1.3.1
+* Analysing Issue on pub.dev
 ## 1.3.0
 * Fixing Analysing Issue on pub.dev 
 ## 1.2.2
