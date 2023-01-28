@@ -248,7 +248,7 @@ class DetectorOptions {
 
 /// An constant [String] for [URL_REGEXP] Pattern
 const String URL_REGEXP =
-    r'''(?<= |^)([--:\w?%&+~#=]*\.[a-z]{2,4}\/{0,2})((?:[?&](?:\w+)=(?:\w+))+|[--:\w?@%&+~#=]+)?''';
+    r'''(?!\n)(?:^|\s)([--:\w?%&+~#=]*\.[a-z]{2,4}\/{0,2})((?:[?&](?:\w+)=(?:\w+))+|[--:\w?@%&+~#=]+)?''';
 
 /// An constant [String] for [HASHTAG_REGEXP] Pattern
 const String HASHTAG_REGEXP =

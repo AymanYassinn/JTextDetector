@@ -43,27 +43,7 @@ const List<String> TEXT_EXAMPLE = [
   "08. 772445395",
   "07. website  https://jucodes.com/en  web: www.jucodes.com,  facebook.com,  link http://jucodes.com/method?id=hello.com, hashtag #trending & userTag @dev.user +12345678901",
 ];
-List<Color> fColors = [
-  Colors.brown,
-  Colors.lime,
-  Colors.purple,
-  Colors.blue,
-  Colors.green,
-  Colors.red,
-  Colors.purpleAccent,
-  Colors.deepPurple,
-  Colors.pink,
-  Colors.cyanAccent,
-];
-const Map<String, dynamic> STRING_REGEXP_CONST = {
-  URL_REGEXP_TYPE: URL_REGEXP,
-  PHONE_REGEXP_TYPE: PHONE_REGEXP,
-  EMAIL_REGEXP_TYPE: EMAIL_REGEXP,
-  HASHTAG_REGEXP_TYPE: HASHTAG_REGEXP,
-  USER_TAG_REGEXP_TYPE: USER_TAG_REGEXP,
-  USER_ID_TAG_REGEXP_TYPE: USER_TAG_WITH_ID,
-  ARABIC_REGEXP_TYPE: ARABIC_REGEXP,
-};
+
 List<DetectorOptions> detectorOptionsList = [
   DetectorOptions(
       type: "PHONE",
@@ -179,30 +159,30 @@ class _JTextDetectorExampleState extends State<JTextDetectorExample> {
         children: [
           Expanded(
               child: ListView(
-            children: [
-              JTextFieldDetector(
-                controller: controller,
-                keyboardType: TextInputType.multiline,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-                textDirection: TextDirection.rtl,
-                textAlign: TextAlign.right,
-                clipBehavior: Clip.hardEdge,
-                detectorOptions: detectorOptionsList,
-                isTapValid: false,
-                maxLines: 15,
-              ),
-              for (int i = 0; i < TEXT_EXAMPLE.length; i++)
-                JTextDetector(
-                  text: TEXT_EXAMPLE[i],
-                  selectable: TEXT_EXAMPLE[i].startsWith("07"),
-                  detectorOptions: detectorOptionsList,
-                ),
-            ],
-          )),
+                children: [
+                  JTextFieldDetector(
+                    controller: controller,
+                    keyboardType: TextInputType.multiline,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                    textDirection: TextDirection.rtl,
+                    textAlign: TextAlign.right,
+                    clipBehavior: Clip.hardEdge,
+                    detectorOptions: detectorOptionsList,
+                    isTapValid: false,
+                    maxLines: 15,
+                  ),
+                  for (int i = 0; i < TEXT_EXAMPLE.length; i++)
+                    JTextDetector(
+                      text: TEXT_EXAMPLE[i],
+                      selectable: TEXT_EXAMPLE[i].startsWith("07"),
+                      detectorOptions: detectorOptionsList,
+                    ),
+                ],
+              )),
         ],
       ),
       floatingActionButton: FloatingActionButton(
