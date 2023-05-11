@@ -188,7 +188,7 @@ class JTDetector {
   }
 }
 
-/// A [DetectedValue] class which provides a Return Value for [JTextDetector] and [JTextFieldDetector]
+/// A [DetectedValue] class which provides a Return Value for [JTextDetector] and [JTextFieldDetector] .
 class DetectedValue {
   // ignore: prefer_final_fields
   String _value = "";
