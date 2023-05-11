@@ -16,7 +16,7 @@ class JTDetector {
   final bool _valid;
 
   ///[Function] of [DetectedValue] - [_onTap]
-  Function(DetectedValue)? _onTap;
+  final Function(DetectedValue)? _onTap;
 
   ///constructor for [JTDetector]
   JTDetector(
@@ -52,7 +52,7 @@ class JTDetector {
   }
 
   InlineSpan _spansList(List<RegExpMatch> detectedList) {
-    InlineSpan fWidget = TextSpan();
+    InlineSpan fWidget = const TextSpan();
     if (detectedList.isNotEmpty) {
       final match = detectedList.removeAt(0);
       String matchedText = match.input.substring(match.start, match.end);
@@ -114,7 +114,7 @@ class JTDetector {
   }
 
   InlineSpan _spansList2(List<RegExpMatch> detectedList) {
-    InlineSpan fWidget = TextSpan();
+    InlineSpan fWidget = const TextSpan();
     if (detectedList.isNotEmpty) {
       final match = detectedList.removeAt(0);
       String matchedText = match.input.substring(match.start, match.end);

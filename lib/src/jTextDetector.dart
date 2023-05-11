@@ -123,7 +123,6 @@ class JTextDetector extends StatelessWidget {
   final bool selectable;
   @override
   Widget build(BuildContext context) {
-    TextField();
     final detector = JTDetector(
         detectorOptions, text, defaultDetectStyle, onTap, isTapValid);
     if (selectable) {

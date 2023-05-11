@@ -55,7 +55,7 @@ class _TextFieldSelectionGestureDetectorBuilder
   }
 
   @override
-  void onSingleTapUp(TapUpDetails details) {
+  void onSingleTapUp(TapDragUpDetails details) {
     editableText.hideToolbar();
     super.onSingleTapUp(details);
     _state._requestKeyboard();
@@ -1611,6 +1611,8 @@ class JTextEditable extends EditableText {
     super.contextMenuBuilder,
     super.spellCheckConfiguration,
     super.magnifierConfiguration,
+    super.undoController,
+    super.contentInsertionConfiguration,
   });
   @override
   JTextEditeState createState() => JTextEditeState();
