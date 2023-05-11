@@ -190,8 +190,11 @@ class JTDetector {
 
 /// A [DetectedValue] class which provides a Return Value for [JTextDetector] and [JTextFieldDetector]
 class DetectedValue {
+  // ignore: prefer_final_fields
   String _value = "";
+  // ignore: prefer_final_fields
   String _detectType = "";
+  // ignore: prefer_final_fields
   RegExp _regExp = RegExp(r'''a^''');
   DetectedValue(this._regExp, [this._value = '', this._detectType = ""]);
 
