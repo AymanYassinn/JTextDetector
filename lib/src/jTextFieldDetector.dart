@@ -15,7 +15,6 @@ class _TextFieldSelectionGestureDetectorBuilder
         super(delegate: state);
 
   final _JTextFieldDetectorState _state;
-
   @override
   void onForcePressStart(ForcePressDetails details) {
     super.onForcePressStart(details);
@@ -30,33 +29,7 @@ class _TextFieldSelectionGestureDetectorBuilder
   }
 
   @override
-  void onSingleLongTapMoveUpdate(LongPressMoveUpdateDetails details) {
-    if (delegate.selectionEnabled) {
-      switch (Theme.of(_state.context).platform) {
-        case TargetPlatform.iOS:
-        case TargetPlatform.macOS:
-          renderEditable.selectPositionAt(
-            from: details.globalPosition,
-            cause: SelectionChangedCause.longPress,
-          );
-          break;
-        case TargetPlatform.android:
-        case TargetPlatform.fuchsia:
-        case TargetPlatform.linux:
-        case TargetPlatform.windows:
-          renderEditable.selectWordsInRange(
-            from: details.globalPosition - details.offsetFromOrigin,
-            to: details.globalPosition,
-            cause: SelectionChangedCause.longPress,
-          );
-          break;
-      }
-    }
-  }
-
-  @override
   void onSingleTapUp(TapDragUpDetails details) {
-    editableText.hideToolbar();
     super.onSingleTapUp(details);
     _state._requestKeyboard();
     _state.widget.onTap?.call();
@@ -64,22 +37,17 @@ class _TextFieldSelectionGestureDetectorBuilder
 
   @override
   void onSingleLongTapStart(LongPressStartDetails details) {
+    super.onSingleLongTapStart(details);
     if (delegate.selectionEnabled) {
       switch (Theme.of(_state.context).platform) {
         case TargetPlatform.iOS:
         case TargetPlatform.macOS:
-          renderEditable.selectPositionAt(
-            from: details.globalPosition,
-            cause: SelectionChangedCause.longPress,
-          );
           break;
         case TargetPlatform.android:
         case TargetPlatform.fuchsia:
         case TargetPlatform.linux:
         case TargetPlatform.windows:
-          renderEditable.selectWord(cause: SelectionChangedCause.longPress);
           Feedback.forLongPress(_state.context);
-          break;
       }
     }
   }
@@ -249,10 +217,8 @@ class JTextFieldDetector extends StatefulWidget {
   const JTextFieldDetector({
     super.key,
     this.controller,
-    this.detectorOptions = const [],
-    this.isTapValid = false,
-    this.onDetectedValueTap,
     this.focusNode,
+    this.undoController,
     this.decoration = const InputDecoration(),
     TextInputType? keyboardType,
     this.textInputAction,
@@ -285,6 +251,7 @@ class JTextFieldDetector extends StatefulWidget {
     this.cursorWidth = 2.0,
     this.cursorHeight,
     this.cursorRadius,
+    this.cursorOpacityAnimates,
     this.cursorColor,
     this.selectionHeightStyle = ui.BoxHeightStyle.tight,
     this.selectionWidthStyle = ui.BoxWidthStyle.tight,
@@ -300,13 +267,18 @@ class JTextFieldDetector extends StatefulWidget {
     this.scrollController,
     this.scrollPhysics,
     this.autofillHints = const <String>[],
+    this.contentInsertionConfiguration,
     this.clipBehavior = Clip.hardEdge,
     this.restorationId,
     this.scribbleEnabled = true,
     this.enableIMEPersonalizedLearning = true,
     this.contextMenuBuilder = _defaultContextMenuBuilder,
+    this.canRequestFocus = true,
     this.spellCheckConfiguration,
     this.magnifierConfiguration,
+    this.detectorOptions = const [],
+    this.isTapValid = false,
+    this.onDetectedValueTap,
   })  : assert(obscuringCharacter.length == 1),
         smartDashesType = smartDashesType ??
             (obscureText ? SmartDashesType.disabled : SmartDashesType.enabled),
@@ -484,6 +456,9 @@ class JTextFieldDetector extends StatefulWidget {
 
   /// {@macro flutter.widgets.editableText.showCursor}
   final bool? showCursor;
+
+  /// {@macro flutter.widgets.editableText.contentInsertionConfiguration}
+  final ContentInsertionConfiguration? contentInsertionConfiguration;
 
   /// If [maxLength] is set to this value, only the "current input length"
   /// part of the character counter is shown.
@@ -740,6 +715,9 @@ class JTextFieldDetector extends StatefulWidget {
   /// {@endtemplate}
   final String? restorationId;
 
+  /// {@macro flutter.widgets.editableText.cursorOpacityAnimates}
+  final bool? cursorOpacityAnimates;
+
   /// {@macro flutter.widgets.editableText.scribbleEnabled}
   final bool scribbleEnabled;
 
@@ -760,6 +738,16 @@ class JTextFieldDetector extends StatefulWidget {
   ///
   ///  * [AdaptiveTextSelectionToolbar], which is built by default.
   final EditableTextContextMenuBuilder? contextMenuBuilder;
+
+  /// Determine whether this text field can request the primary focus.
+  ///
+  /// Defaults to true. If false, the text field will not request focus
+  /// when tapped, or when its context menu is displayed. If false it will not
+  /// be possible to move the focus to the text field with tab key.
+  final bool canRequestFocus;
+
+  /// {@macro flutter.widgets.undoHistory.controller}
+  final UndoHistoryController? undoController;
 
   static Widget _defaultContextMenuBuilder(
       BuildContext context, EditableTextState editableTextState) {
@@ -787,6 +775,58 @@ class JTextFieldDetector extends StatefulWidget {
     decorationStyle: TextDecorationStyle.wavy,
   );
 
+  /// Default builder for [TextField]'s spell check suggestions toolbar.
+  ///
+  /// On Apple platforms, builds an iOS-style toolbar. Everywhere else, builds
+  /// an Android-style toolbar.
+  ///
+  /// See also:
+  ///  * [spellCheckConfiguration], where this is typically specified for
+  ///    [TextField].
+  ///  * [SpellCheckConfiguration.spellCheckSuggestionsToolbarBuilder], the
+  ///    parameter for which this is the default value for [TextField].
+  ///  * [CupertinoTextField.defaultSpellCheckSuggestionsToolbarBuilder], which
+  ///    is like this but specifies the default for [CupertinoTextField].
+  @visibleForTesting
+  static Widget defaultSpellCheckSuggestionsToolbarBuilder(
+    BuildContext context,
+    EditableTextState editableTextState,
+  ) {
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+        return CupertinoSpellCheckSuggestionsToolbar.editableText(
+          editableTextState: editableTextState,
+        );
+      case TargetPlatform.android:
+      case TargetPlatform.fuchsia:
+      case TargetPlatform.linux:
+      case TargetPlatform.windows:
+        return SpellCheckSuggestionsToolbar.editableText(
+          editableTextState: editableTextState,
+        );
+    }
+  }
+
+  /// Returns a new [SpellCheckConfiguration] where the given configuration has
+  /// had any missing values replaced with their defaults for the Android
+  /// platform.
+  static SpellCheckConfiguration inferAndroidSpellCheckConfiguration(
+    SpellCheckConfiguration? configuration,
+  ) {
+    if (configuration == null ||
+        configuration == const SpellCheckConfiguration.disabled()) {
+      return const SpellCheckConfiguration.disabled();
+    }
+    return configuration.copyWith(
+      misspelledTextStyle: configuration.misspelledTextStyle ??
+          JTextFieldDetector.materialMisspelledTextStyle,
+      spellCheckSuggestionsToolbarBuilder:
+          configuration.spellCheckSuggestionsToolbarBuilder ??
+              JTextFieldDetector.defaultSpellCheckSuggestionsToolbarBuilder,
+    );
+  }
+
   @override
   State<JTextFieldDetector> createState() => _JTextFieldDetectorState();
 
@@ -797,6 +837,9 @@ class JTextFieldDetector extends StatefulWidget {
         'controller', controller,
         defaultValue: null));
     properties.add(DiagnosticsProperty<FocusNode>('focusNode', focusNode,
+        defaultValue: null));
+    properties.add(DiagnosticsProperty<UndoHistoryController>(
+        'undoController', undoController,
         defaultValue: null));
     properties
         .add(DiagnosticsProperty<bool>('enabled', enabled, defaultValue: null));
@@ -855,6 +898,9 @@ class JTextFieldDetector extends StatefulWidget {
         .add(DoubleProperty('cursorHeight', cursorHeight, defaultValue: null));
     properties.add(DiagnosticsProperty<Radius>('cursorRadius', cursorRadius,
         defaultValue: null));
+    properties.add(DiagnosticsProperty<bool>(
+        'cursorOpacityAnimates', cursorOpacityAnimates,
+        defaultValue: null));
     properties
         .add(ColorProperty('cursorColor', cursorColor, defaultValue: null));
     properties.add(DiagnosticsProperty<Brightness>(
@@ -886,6 +932,11 @@ class JTextFieldDetector extends StatefulWidget {
     properties.add(DiagnosticsProperty<SpellCheckConfiguration>(
         'spellCheckConfiguration', spellCheckConfiguration,
         defaultValue: null));
+    properties.add(DiagnosticsProperty<List<String>>('contentCommitMimeTypes',
+        contentInsertionConfiguration?.allowedMimeTypes ?? const <String>[],
+        defaultValue: contentInsertionConfiguration == null
+            ? const <String>[]
+            : kDefaultContentInsertionMimeTypes));
   }
 }
 
@@ -940,6 +991,10 @@ class _JTextFieldDetectorState extends State<JTextFieldDetector>
 
   bool get _hasError =>
       widget.decoration?.errorText != null || _hasIntrinsicError;
+
+  Color get _errorColor =>
+      widget.decoration?.errorStyle?.color ??
+      Theme.of(context).colorScheme.error;
 
   InputDecoration _getEffectiveDecoration() {
     final MaterialLocalizations localizations =
@@ -1026,16 +1081,16 @@ class _JTextFieldDetectorState extends State<JTextFieldDetector>
     if (widget.controller == null) {
       _createLocalController();
     }
-    _effectiveFocusNode.canRequestFocus = _isEnabled;
+    _effectiveFocusNode.canRequestFocus = widget.canRequestFocus && _isEnabled;
     _effectiveFocusNode.addListener(_handleFocusChanged);
   }
 
   bool get _canRequestFocus {
-    final NavigationMode mode = MediaQuery.maybeOf(context)?.navigationMode ??
-        NavigationMode.traditional;
+    final NavigationMode mode =
+        MediaQuery.maybeNavigationModeOf(context) ?? NavigationMode.traditional;
     switch (mode) {
       case NavigationMode.traditional:
-        return _isEnabled;
+        return widget.canRequestFocus && _isEnabled;
       case NavigationMode.directional:
         return true;
     }
@@ -1228,7 +1283,28 @@ class _JTextFieldDetectorState extends State<JTextFieldDetector>
     return _editableText!.textInputConfiguration
         .copyWith(autofillConfiguration: autofillConfiguration);
   }
+
   // AutofillClient implementation end.
+  Set<MaterialState> get _materialState {
+    return <MaterialState>{
+      if (!_isEnabled) MaterialState.disabled,
+      if (_isHovering) MaterialState.hovered,
+      if (_effectiveFocusNode.hasFocus) MaterialState.focused,
+      if (_hasError) MaterialState.error,
+    };
+  }
+
+  TextStyle _getInputStyleForState(TextStyle style) {
+    final ThemeData theme = Theme.of(context);
+    final TextStyle stateStyle = MaterialStateProperty.resolveAs(
+        theme.useMaterial3
+            ? _m3StateInputStyle(context)!
+            : _m2StateInputStyle(context)!,
+        _materialState);
+    final TextStyle providedStyle =
+        MaterialStateProperty.resolveAs(style, _materialState);
+    return providedStyle.merge(stateStyle);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1246,7 +1322,7 @@ class _JTextFieldDetectorState extends State<JTextFieldDetector>
     final ThemeData theme = Theme.of(context);
     final DefaultSelectionStyle selectionStyle =
         DefaultSelectionStyle.of(context);
-    final TextStyle style = (theme.useMaterial3
+    final TextStyle style = _getInputStyleForState(theme.useMaterial3
             ? _m3InputStyle(context)
             : theme.textTheme.titleMedium!)
         .merge(widget.style);
@@ -1264,21 +1340,28 @@ class _JTextFieldDetectorState extends State<JTextFieldDetector>
     ];
 
     // Set configuration as disabled if not otherwise specified. If specified,
-    // ensure that configuration uses Material text style for misspelled words
-    // unless a custom style is specified.
-    final SpellCheckConfiguration spellCheckConfiguration =
-        widget.spellCheckConfiguration != null &&
-                widget.spellCheckConfiguration !=
-                    const SpellCheckConfiguration.disabled()
-            ? widget.spellCheckConfiguration!.copyWith(
-                misspelledTextStyle:
-                    widget.spellCheckConfiguration!.misspelledTextStyle ??
-                        TextField.materialMisspelledTextStyle)
-            : const SpellCheckConfiguration.disabled();
+    // ensure that configuration uses the correct style for misspelled words for
+    // the current platform, unless a custom style is specified.
+    final SpellCheckConfiguration spellCheckConfiguration;
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+        spellCheckConfiguration =
+            CupertinoTextField.inferIOSSpellCheckConfiguration(
+          widget.spellCheckConfiguration,
+        );
+      case TargetPlatform.android:
+      case TargetPlatform.fuchsia:
+      case TargetPlatform.linux:
+      case TargetPlatform.windows:
+        spellCheckConfiguration = TextField.inferAndroidSpellCheckConfiguration(
+          widget.spellCheckConfiguration,
+        );
+    }
 
     TextSelectionControls? textSelectionControls = widget.selectionControls;
     final bool paintCursorAboveText;
-    final bool cursorOpacityAnimates;
+    bool? cursorOpacityAnimates = widget.cursorOpacityAnimates;
     Offset? cursorOffset;
     final Color cursorColor;
     final Color selectionColor;
@@ -1292,32 +1375,35 @@ class _JTextFieldDetectorState extends State<JTextFieldDetector>
         forcePressEnabled = true;
         textSelectionControls ??= cupertinoTextSelectionControls;
         paintCursorAboveText = true;
-        cursorOpacityAnimates = true;
-        cursorColor = widget.cursorColor ??
-            selectionStyle.cursorColor ??
-            cupertinoTheme.primaryColor;
+        cursorOpacityAnimates ??= true;
+        cursorColor = _hasError
+            ? _errorColor
+            : widget.cursorColor ??
+                selectionStyle.cursorColor ??
+                cupertinoTheme.primaryColor;
         selectionColor = selectionStyle.selectionColor ??
             cupertinoTheme.primaryColor.withOpacity(0.40);
         cursorRadius ??= const Radius.circular(2.0);
         cursorOffset = Offset(
-            iOSHorizontalOffset / MediaQuery.of(context).devicePixelRatio, 0);
+            iOSHorizontalOffset / MediaQuery.devicePixelRatioOf(context), 0);
         autocorrectionTextRectColor = selectionColor;
-        break;
 
       case TargetPlatform.macOS:
         final CupertinoThemeData cupertinoTheme = CupertinoTheme.of(context);
         forcePressEnabled = false;
         textSelectionControls ??= cupertinoDesktopTextSelectionControls;
         paintCursorAboveText = true;
-        cursorOpacityAnimates = false;
-        cursorColor = widget.cursorColor ??
-            selectionStyle.cursorColor ??
-            cupertinoTheme.primaryColor;
+        cursorOpacityAnimates ??= false;
+        cursorColor = _hasError
+            ? _errorColor
+            : widget.cursorColor ??
+                selectionStyle.cursorColor ??
+                cupertinoTheme.primaryColor;
         selectionColor = selectionStyle.selectionColor ??
             cupertinoTheme.primaryColor.withOpacity(0.40);
         cursorRadius ??= const Radius.circular(2.0);
         cursorOffset = Offset(
-            iOSHorizontalOffset / MediaQuery.of(context).devicePixelRatio, 0);
+            iOSHorizontalOffset / MediaQuery.devicePixelRatioOf(context), 0);
         handleDidGainAccessibilityFocus = () {
           // Automatically activate the TextField when it receives accessibility focus.
           if (!_effectiveFocusNode.hasFocus &&
@@ -1325,41 +1411,44 @@ class _JTextFieldDetectorState extends State<JTextFieldDetector>
             _effectiveFocusNode.requestFocus();
           }
         };
-        break;
 
       case TargetPlatform.android:
       case TargetPlatform.fuchsia:
         forcePressEnabled = false;
         textSelectionControls ??= materialTextSelectionControls;
         paintCursorAboveText = false;
-        cursorOpacityAnimates = false;
-        cursorColor = widget.cursorColor ??
-            selectionStyle.cursorColor ??
-            theme.colorScheme.primary;
+        cursorOpacityAnimates ??= false;
+        cursorColor = _hasError
+            ? _errorColor
+            : widget.cursorColor ??
+                selectionStyle.cursorColor ??
+                theme.colorScheme.primary;
         selectionColor = selectionStyle.selectionColor ??
             theme.colorScheme.primary.withOpacity(0.40);
-        break;
 
       case TargetPlatform.linux:
         forcePressEnabled = false;
         textSelectionControls ??= desktopTextSelectionControls;
         paintCursorAboveText = false;
-        cursorOpacityAnimates = false;
-        cursorColor = widget.cursorColor ??
-            selectionStyle.cursorColor ??
-            theme.colorScheme.primary;
+        cursorOpacityAnimates ??= false;
+        cursorColor = _hasError
+            ? _errorColor
+            : widget.cursorColor ??
+                selectionStyle.cursorColor ??
+                theme.colorScheme.primary;
         selectionColor = selectionStyle.selectionColor ??
             theme.colorScheme.primary.withOpacity(0.40);
-        break;
 
       case TargetPlatform.windows:
         forcePressEnabled = false;
         textSelectionControls ??= desktopTextSelectionControls;
         paintCursorAboveText = false;
-        cursorOpacityAnimates = false;
-        cursorColor = widget.cursorColor ??
-            selectionStyle.cursorColor ??
-            theme.colorScheme.primary;
+        cursorOpacityAnimates ??= false;
+        cursorColor = _hasError
+            ? _errorColor
+            : widget.cursorColor ??
+                selectionStyle.cursorColor ??
+                theme.colorScheme.primary;
         selectionColor = selectionStyle.selectionColor ??
             theme.colorScheme.primary.withOpacity(0.40);
         handleDidGainAccessibilityFocus = () {
@@ -1369,80 +1458,155 @@ class _JTextFieldDetectorState extends State<JTextFieldDetector>
             _effectiveFocusNode.requestFocus();
           }
         };
-        break;
     }
 
     Widget child = RepaintBoundary(
       child: UnmanagedRestorationScope(
         bucket: bucket,
-        child: JTextEditable(
-          key: editableTextKey,
-          readOnly: widget.readOnly || !_isEnabled,
-          showCursor: widget.showCursor,
-          showSelectionHandles: _showSelectionHandles,
-          controller: controller,
-          focusNode: focusNode,
-          keyboardType: widget.keyboardType,
-          textInputAction: widget.textInputAction,
-          textCapitalization: widget.textCapitalization,
-          style: style,
-          strutStyle: widget.strutStyle,
-          textAlign: widget.textAlign,
-          textDirection: widget.textDirection,
-          autofocus: widget.autofocus,
-          obscuringCharacter: widget.obscuringCharacter,
-          obscureText: widget.obscureText,
-          autocorrect: widget.autocorrect,
-          smartDashesType: widget.smartDashesType,
-          smartQuotesType: widget.smartQuotesType,
-          enableSuggestions: widget.enableSuggestions,
-          maxLines: widget.maxLines,
-          minLines: widget.minLines,
-          expands: widget.expands,
-          // Only show the selection highlight when the text field is focused.
-          selectionColor: focusNode.hasFocus ? selectionColor : null,
-          selectionControls:
-              widget.selectionEnabled ? textSelectionControls : null,
-          onChanged: widget.onChanged,
-          onSelectionChanged: _handleSelectionChanged,
-          onEditingComplete: widget.onEditingComplete,
-          onSubmitted: widget.onSubmitted,
-          onAppPrivateCommand: widget.onAppPrivateCommand,
-          onSelectionHandleTapped: _handleSelectionHandleTapped,
-          onTapOutside: widget.onTapOutside,
-          inputFormatters: formatters,
-          rendererIgnoresPointer: true,
-          mouseCursor: MouseCursor.defer, // TextField will handle the cursor
-          cursorWidth: widget.cursorWidth,
-          cursorHeight: widget.cursorHeight,
-          cursorRadius: cursorRadius,
-          cursorColor: cursorColor,
-          selectionHeightStyle: widget.selectionHeightStyle,
-          selectionWidthStyle: widget.selectionWidthStyle,
-          cursorOpacityAnimates: cursorOpacityAnimates,
-          cursorOffset: cursorOffset,
-          paintCursorAboveText: paintCursorAboveText,
-          backgroundCursorColor: CupertinoColors.inactiveGray,
-          scrollPadding: widget.scrollPadding,
-          keyboardAppearance: keyboardAppearance,
-          enableInteractiveSelection: widget.enableInteractiveSelection,
-          dragStartBehavior: widget.dragStartBehavior,
-          scrollController: widget.scrollController,
-          scrollPhysics: widget.scrollPhysics,
-          autofillClient: this,
-          autocorrectionTextRectColor: autocorrectionTextRectColor,
-          clipBehavior: widget.clipBehavior,
-          restorationId: 'editable',
-          scribbleEnabled: widget.scribbleEnabled,
-          enableIMEPersonalizedLearning: widget.enableIMEPersonalizedLearning,
-          contextMenuBuilder: widget.contextMenuBuilder,
-          spellCheckConfiguration: spellCheckConfiguration,
-          magnifierConfiguration: widget.magnifierConfiguration ??
-              TextMagnifier.adaptiveMagnifierConfiguration,
-          detectorOptions: widget.detectorOptions,
-          fTap: widget.onDetectedValueTap,
-          fValid: widget.isTapValid,
-        ),
+        child: widget.obscureText
+            ? EditableText(
+                key: editableTextKey,
+                readOnly: widget.readOnly || !_isEnabled,
+                showCursor: widget.showCursor,
+                showSelectionHandles: _showSelectionHandles,
+                controller: controller,
+                focusNode: focusNode,
+                undoController: widget.undoController,
+                keyboardType: widget.keyboardType,
+                textInputAction: widget.textInputAction,
+                textCapitalization: widget.textCapitalization,
+                style: style,
+                strutStyle: widget.strutStyle,
+                textAlign: widget.textAlign,
+                textDirection: widget.textDirection,
+                autofocus: widget.autofocus,
+                obscuringCharacter: widget.obscuringCharacter,
+                obscureText: widget.obscureText,
+                autocorrect: widget.autocorrect,
+                smartDashesType: widget.smartDashesType,
+                smartQuotesType: widget.smartQuotesType,
+                enableSuggestions: widget.enableSuggestions,
+                maxLines: widget.maxLines,
+                minLines: widget.minLines,
+                expands: widget.expands,
+                // Only show the selection highlight when the text field is focused.
+                selectionColor: focusNode.hasFocus ? selectionColor : null,
+                selectionControls:
+                    widget.selectionEnabled ? textSelectionControls : null,
+                onChanged: widget.onChanged,
+                onSelectionChanged: _handleSelectionChanged,
+                onEditingComplete: widget.onEditingComplete,
+                onSubmitted: widget.onSubmitted,
+                onAppPrivateCommand: widget.onAppPrivateCommand,
+                onSelectionHandleTapped: _handleSelectionHandleTapped,
+                onTapOutside: widget.onTapOutside,
+                inputFormatters: formatters,
+                rendererIgnoresPointer: true,
+                mouseCursor:
+                    MouseCursor.defer, // TextField will handle the cursor
+                cursorWidth: widget.cursorWidth,
+                cursorHeight: widget.cursorHeight,
+                cursorRadius: cursorRadius,
+                cursorColor: cursorColor,
+                selectionHeightStyle: widget.selectionHeightStyle,
+                selectionWidthStyle: widget.selectionWidthStyle,
+                cursorOpacityAnimates: cursorOpacityAnimates,
+                cursorOffset: cursorOffset,
+                paintCursorAboveText: paintCursorAboveText,
+                backgroundCursorColor: CupertinoColors.inactiveGray,
+                scrollPadding: widget.scrollPadding,
+                keyboardAppearance: keyboardAppearance,
+                enableInteractiveSelection: widget.enableInteractiveSelection,
+                dragStartBehavior: widget.dragStartBehavior,
+                scrollController: widget.scrollController,
+                scrollPhysics: widget.scrollPhysics,
+                autofillClient: this,
+                autocorrectionTextRectColor: autocorrectionTextRectColor,
+                clipBehavior: widget.clipBehavior,
+                restorationId: 'editable',
+                scribbleEnabled: widget.scribbleEnabled,
+                enableIMEPersonalizedLearning:
+                    widget.enableIMEPersonalizedLearning,
+                contentInsertionConfiguration:
+                    widget.contentInsertionConfiguration,
+                contextMenuBuilder: widget.contextMenuBuilder,
+                spellCheckConfiguration: spellCheckConfiguration,
+                magnifierConfiguration: widget.magnifierConfiguration ??
+                    TextMagnifier.adaptiveMagnifierConfiguration,
+              )
+            : JTextEditable(
+                key: editableTextKey,
+                readOnly: widget.readOnly || !_isEnabled,
+                showCursor: widget.showCursor,
+                showSelectionHandles: _showSelectionHandles,
+                controller: controller,
+                focusNode: focusNode,
+                undoController: widget.undoController,
+                keyboardType: widget.keyboardType,
+                textInputAction: widget.textInputAction,
+                textCapitalization: widget.textCapitalization,
+                style: style,
+                strutStyle: widget.strutStyle,
+                textAlign: widget.textAlign,
+                textDirection: widget.textDirection,
+                autofocus: widget.autofocus,
+                obscuringCharacter: widget.obscuringCharacter,
+                obscureText: widget.obscureText,
+                autocorrect: widget.autocorrect,
+                smartDashesType: widget.smartDashesType,
+                smartQuotesType: widget.smartQuotesType,
+                enableSuggestions: widget.enableSuggestions,
+                maxLines: widget.maxLines,
+                minLines: widget.minLines,
+                expands: widget.expands,
+                // Only show the selection highlight when the text field is focused.
+                selectionColor: focusNode.hasFocus ? selectionColor : null,
+                selectionControls:
+                    widget.selectionEnabled ? textSelectionControls : null,
+                onChanged: widget.onChanged,
+                onSelectionChanged: _handleSelectionChanged,
+                onEditingComplete: widget.onEditingComplete,
+                onSubmitted: widget.onSubmitted,
+                onAppPrivateCommand: widget.onAppPrivateCommand,
+                onSelectionHandleTapped: _handleSelectionHandleTapped,
+                onTapOutside: widget.onTapOutside,
+                inputFormatters: formatters,
+                rendererIgnoresPointer: true,
+                mouseCursor:
+                    MouseCursor.defer, // TextField will handle the cursor
+                cursorWidth: widget.cursorWidth,
+                cursorHeight: widget.cursorHeight,
+                cursorRadius: cursorRadius,
+                cursorColor: cursorColor,
+                selectionHeightStyle: widget.selectionHeightStyle,
+                selectionWidthStyle: widget.selectionWidthStyle,
+                cursorOpacityAnimates: cursorOpacityAnimates,
+                cursorOffset: cursorOffset,
+                paintCursorAboveText: paintCursorAboveText,
+                backgroundCursorColor: CupertinoColors.inactiveGray,
+                scrollPadding: widget.scrollPadding,
+                keyboardAppearance: keyboardAppearance,
+                enableInteractiveSelection: widget.enableInteractiveSelection,
+                dragStartBehavior: widget.dragStartBehavior,
+                scrollController: widget.scrollController,
+                scrollPhysics: widget.scrollPhysics,
+                autofillClient: this,
+                autocorrectionTextRectColor: autocorrectionTextRectColor,
+                clipBehavior: widget.clipBehavior,
+                restorationId: 'editable',
+                scribbleEnabled: widget.scribbleEnabled,
+                enableIMEPersonalizedLearning:
+                    widget.enableIMEPersonalizedLearning,
+                contentInsertionConfiguration:
+                    widget.contentInsertionConfiguration,
+                contextMenuBuilder: widget.contextMenuBuilder,
+                spellCheckConfiguration: spellCheckConfiguration,
+                magnifierConfiguration: widget.magnifierConfiguration ??
+                    TextMagnifier.adaptiveMagnifierConfiguration,
+                detectorOptions: widget.detectorOptions,
+                fTap: widget.onDetectedValueTap,
+                fValid: widget.isTapValid,
+              ),
       ),
     );
 
@@ -1468,12 +1632,7 @@ class _JTextFieldDetectorState extends State<JTextFieldDetector>
     final MouseCursor effectiveMouseCursor =
         MaterialStateProperty.resolveAs<MouseCursor>(
       widget.mouseCursor ?? MaterialStateMouseCursor.textable,
-      <MaterialState>{
-        if (!_isEnabled) MaterialState.disabled,
-        if (_isHovering) MaterialState.hovered,
-        if (focusNode.hasFocus) MaterialState.focused,
-        if (_hasError) MaterialState.error,
-      },
+      _materialState,
     );
 
     final int? semanticsMaxValueLength;
@@ -1484,7 +1643,6 @@ class _JTextFieldDetectorState extends State<JTextFieldDetector>
     } else {
       semanticsMaxValueLength = null;
     }
-
     return MouseRegion(
       cursor: effectiveMouseCursor,
       onEnter: (PointerEnterEvent event) => _handleHover(true),
@@ -1523,10 +1681,42 @@ class _JTextFieldDetectorState extends State<JTextFieldDetector>
   }
 }
 
+TextStyle? _m2StateInputStyle(BuildContext context) =>
+    MaterialStateTextStyle.resolveWith((Set<MaterialState> states) {
+      final ThemeData theme = Theme.of(context);
+      if (states.contains(MaterialState.disabled)) {
+        return TextStyle(color: theme.disabledColor);
+      }
+      return TextStyle(color: theme.textTheme.titleMedium?.color);
+    });
+
 TextStyle _m2CounterErrorStyle(BuildContext context) => Theme.of(context)
     .textTheme
     .bodySmall!
     .copyWith(color: Theme.of(context).colorScheme.error);
+
+// BEGIN GENERATED TOKEN PROPERTIES - TextField
+
+// Do not edit by hand. The code between the "BEGIN GENERATED" and
+// "END GENERATED" comments are generated from data in the Material
+// Design token database by the script:
+//   dev/tools/gen_defaults/bin/gen_defaults.dart.
+
+// Token database version: v0_162
+
+TextStyle? _m3StateInputStyle(BuildContext context) =>
+    MaterialStateTextStyle.resolveWith((Set<MaterialState> states) {
+      if (states.contains(MaterialState.disabled)) {
+        return TextStyle(
+            color: Theme.of(context)
+                .textTheme
+                .bodyLarge!
+                .color
+                ?.withOpacity(0.38));
+      }
+      return TextStyle(color: Theme.of(context).textTheme.bodyLarge!.color);
+    });
+
 TextStyle _m3InputStyle(BuildContext context) =>
     Theme.of(context).textTheme.bodyLarge!;
 

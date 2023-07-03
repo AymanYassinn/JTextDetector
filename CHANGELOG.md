@@ -1,5 +1,6 @@
-## 1.4.0
-* Analysing Issue on pub.dev
+## 1.5.0
+* ObscureText Support
+* General Enhancement
 ## 1.3.1
 * Analysing Issue on pub.dev
 ## 1.3.0

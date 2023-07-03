@@ -181,6 +181,15 @@ class _JTextDetectorExampleState extends State<JTextDetectorExample> {
                 isTapValid: false,
                 maxLines: 15,
               ),
+              const Divider(
+                height: 10,
+                color: Colors.black,
+              ),
+              const JTextFieldDetector(
+                obscureText: true,
+                maxLines: 1,
+                decoration: InputDecoration(hintText: "Password"),
+              ),
               for (int i = 0; i < TEXT_EXAMPLE.length; i++)
                 JTextDetector(
                   text: TEXT_EXAMPLE[i],
