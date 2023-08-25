@@ -1,3 +1,5 @@
+## 1.6.0
+* Update Dependencies
 ## 1.5.0
 * ObscureText Support
 * General Enhancement
